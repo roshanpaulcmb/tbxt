@@ -1,6 +1,6 @@
     # set inp  equinpt
-    structure tbxtAf3g177dIonized.psf
-    coordinates tbxtAf3g177dIonized.pdb
+    structure ../structures/tbxtAf3g177dIonized.psf
+    coordinates ../structures/tbxtAf3g177dIonized.pdb
     
     # Bincoordinates     ${inp}.coor
     # extendedsystem     ${inp}.xsc    
@@ -28,13 +28,13 @@
     
     # Force-Field Parameters
     paraTypeCharmm on
-    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36m_prot.prm
-    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_na.prm
-    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_carb.prm
-    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_lipid.prm
-    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_lipid_ljpme.prm
-    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_cgenff.prm
-    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/toppar_water_ions_zeynep.str
+    parameters ../toppar/par_all36m_prot.prm
+    parameters ../toppar/par_all36_na.prm
+    parameters ../toppar/par_all36_carb.prm
+    parameters ../toppar/par_all36_lipid.prm
+    parameters ../toppar/par_all36_lipid_ljpme.prm
+    parameters ../toppar/par_all36_cgenff.prm
+    parameters ../toppar/toppar_water_ions_z.str
     
     # These are specified by CHARMM
     exclude scaled1-4
@@ -52,8 +52,8 @@
     timestep 2.0    ;# 2fs/step
     rigidBonds all      ;# needed for 2fs/step
     nonbondedFreq 1     ;# nonbonded forces every step
-    # fullElectFrequency 2    ;# turned off for namd3
-    # stepspercycle 20 :# turned off for namd3    
+    fullElectFrequency 2
+    # stepspercycle 20 :# turned off for namd3
 
     # Not set for Rest2
     # Constant Temprature Control
@@ -103,7 +103,8 @@
     
     # Solute tempering
     soluteScaling on
-    soluteScalingFile tbxtAf3g177dRest2Mask.pdb
+    soluteScalingCol O
+    soluteScalingFile ../structures/tbxtAf3g177dRest2Mask.pdb
     soluteScalingAll off
     
     # Not set for Rest2

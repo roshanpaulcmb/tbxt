@@ -1,0 +1,72 @@
+# ----------------------------
+# Minimal Pre-run to generate .xsc for REST2
+# ----------------------------
+
+structure tbxtAf3g177dIonized.psf
+coordinates tbxtAf3g177dIonized.pdb
+temperature 310
+
+# Output root
+set outputname equinpt
+outputName $outputname
+
+# Force-field
+paraTypeCharmm on
+parameters /net/dali/home/mscbio/rop174/tbxt2035_mut/toppar/par_all36m_prot.prm
+parameters /net/dali/home/mscbio/rop174/tbxt2035_mut/toppar/par_all36_na.prm
+parameters /net/dali/home/mscbio/rop174/tbxt2035_mut/toppar/par_all36_carb.prm
+parameters /net/dali/home/mscbio/rop174/tbxt2035_mut/toppar/par_all36_lipid.prm
+parameters /net/dali/home/mscbio/rop174/tbxt2035_mut/toppar/par_all36_lipid_ljpme.prm
+parameters /net/dali/home/mscbio/rop174/tbxt2035_mut/toppar/par_all36_cgenff.prm
+parameters /net/dali/home/mscbio/rop174/tbxt2035_mut/toppar/toppar_water_ions_z.str
+
+# Nonbonded
+exclude scaled1-4
+1-4scaling 1.0
+switching on
+cutoff 12.0
+switchdist 10.0
+pairlistdist 14.0
+PME on
+PMEGridSpacing 1.0
+
+# Integrator
+timestep 2.0
+rigidBonds all
+nonbondedFreq 1
+fullElectFrequency 2
+
+# Temperature control
+langevin on
+langevinTemp 310.0
+langevinDamping 1.0
+
+# Periodic boundary conditions
+cellBasisVector1    124.38600373 0. 0.  ;# vector to the next image
+cellBasisVector2    0. 93.44700623 0.
+cellBasisVector3    0. 0. 156.79299355
+cellOrigin 64.56981658935547 84.49002075195312 49.27158737182617
+
+wrapWater on
+wrapAll on
+wrapNearest off
+
+# Pressure control
+LangevinPiston on
+LangevinPistonTarget 1.01325
+LangevinPistonPeriod 100
+LangevinPistonDecay 100
+LangevinPistonTemp 310
+
+# Output
+outputEnergies 100
+outputTiming 100
+DCDfreq 100
+
+# ----------------------------
+# RUN: create velocities and extended system
+# ----------------------------
+
+minimize 10000
+reinitvels 310         ;# generate initial velocities
+run 1000               ;# short run; .coor and .xsc will be created here

@@ -1,0 +1,20 @@
+name: md
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - openmm
+  - mdanalysis
+  - mdtraj
+  - prody
+  - umap-learn
+  - hdbscan
+  - tqdm
+  - seaborn
+  - ipython
+  - pip
+

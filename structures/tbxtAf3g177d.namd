@@ -1,0 +1,112 @@
+    # set inp  equinpt
+    structure tbxtAf3g177dIonized.psf
+    coordinates tbxtAf3g177dIonized.pdb
+    
+    # Bincoordinates     ${inp}.coor
+    # extendedsystem     ${inp}.xsc    
+    # Not set for Rest2
+    # set temperature 310
+    # temperature $temperature 
+    
+    # SKIP: continuing a run
+    
+    # Not set for Rest2
+    # outputName tbxtAf3
+    
+    CUDASOAintegrate on
+    margin 4.0    
+    
+    # restart files ;# update from hard code
+    # restartfreq 10000
+    # dcdfreq 10000
+    # xstfreq 10000
+    
+    # Not set for Rest2
+    # Add to parameters
+    # outputEnergies 100      ;# 100 steps = every 0.2 ps
+    outputTiming 100       ;# shows time per step and time to completion
+    
+    # Force-Field Parameters
+    paraTypeCharmm on
+    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36m_prot.prm
+    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_na.prm
+    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_carb.prm
+    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_lipid.prm
+    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_lipid_ljpme.prm
+    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/par_all36_cgenff.prm
+    parameters /net/dali/home/mscbio/rop174/tbxt2035/toppar/toppar_water_ions_z.str
+    
+    # These are specified by CHARMM
+    exclude scaled1-4
+    1-4scaling 1.0
+    switching on
+    
+    # You have some freedom choosing the cutoff
+    cutoff 12. ;# may use smaller, maybe 10., with PME
+    switchdist 10.      ;# cutoff - 2.
+    
+    # Promise that atom won’t move more than 2A in a cycle
+    pairlistdist 14.    ;# cutoff + 2.
+    
+    # Integrator Parameters
+    timestep 2.0    ;# 2fs/step
+    rigidBonds all      ;# needed for 2fs/step
+    nonbondedFreq 1     ;# nonbonded forces every step
+    # fullElectFrequency 2    ;# turned off for namd3
+    # stepspercycle 20 :# turned off for namd3    
+
+    # Not set for Rest2
+    # Constant Temprature Control
+    langevin on     ;# langevin dynamics
+    langevinTemp 310.0
+    langevinDamping 1.0
+    LangevinPiston          on
+    LangevinPistonTarget    1.01325
+    LangevinPistonPeriod    100
+    LangevinPistonDecay     100
+    LangevinPistonTemp      310
+    # langevinHydrogen no
+    
+    # Periodic Boundary conditions
+    cellBasisVector1    124.38600373 0. 0.  ;# vector to the next image
+    cellBasisVector2    0. 93.44700623 0.
+    cellBasisVector3    0. 0. 156.79299355
+    cellOrigin 64.56981658935547 84.49002075195312 49.27158737182617
+    
+    wrapWater on
+    wrapAll on
+    wrapNearest off
+    
+    # PME
+    PME on
+    
+    # let NAMD determine grid
+    PMEGridSpacing 1.0
+    
+    # SKIP: manually specify grid
+    
+    # Constant Pressure Control (variable volume)
+    useGroupPressure yes ;# needed for rigid bonds
+    useFlexibleCell no  ;# no for water box, yes for membrane
+    useConstantArea no  ;# no for water box, maybe for membrane
+    
+    # Assuming not set for Rest2
+    # langevinPiston        on
+    # langevinPistonTarget  1.01325
+    # langevinPistonPeriod  100.
+    # langevinPistonDecay   50.
+    # langevinPistonTemp    $temperature ;# coupled to heat bath  
+    
+    # SKIP: fixing water/lipids
+    
+    # SKIP: steering
+    
+    # Solute tempering
+    soluteScaling on
+    soluteScalingFile tbxtAf3g177dRest2Mask.pdb
+    soluteScalingAll off
+    
+    # Not set for Rest2
+    # minimize 1000          ;# lower potential energy for 10000 steps
+    # reinitvels $temperature  ;# since minimization zeros velocities
+    # run 5000000 ;
