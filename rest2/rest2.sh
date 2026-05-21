@@ -1,15 +1,16 @@
 #!/bin/bash
 #SBATCH --job-name=namd3TbxtRest2
+#SBATCH --output=slurm/%x_%j.out
+#SBATCH --error=slurm/%x_%j.err
 #SBATCH --nodes=1                # 4 replicas
-#SBATCH --gres=gpu:4              # 1 GPU per replica
-#SBATCH --ntasks-per-node=1 # 1 process per node
-#SBATCH --cpus-per-task=4 # 4 threads mapping to 4 cores per node
-#SBATCH --partition=dept_gpu
-#SBATCH --constraint="A4500"
+#SBATCH --gres=gpu:4             # 1 GPU per replica
+#SBATCH --ntasks-per-node=4      # 4 process per node
+#SBATCH --cpus-per-task=4        # 4 threads mapping to 4 cores per node
+#SBATCH --partition=dept_gpu,koes_gpu
+##SBATCH --constraint="2080Ti|L40|A4500|A100"
 #SBATCH --mail-user=rop174@pitt.edu
 #SBATCH --mail-type=ALL
-#SBATCH --time=144:00:00          # adjust based on estimated runtime
-
+#SBATCH --time=12:00:00          # adjust based on estimated runtime
 
 # -----------------------------
 # Requires NAMD_HOME in env. Recommended one-time setup on each machine:
@@ -49,7 +50,11 @@ export NAMD_HOME   # so job0.conf / restart.conf can source via $env(NAMD_HOME)
 # Working directories
 # -----------------------------
 SCRDIR=/scr/${SLURM_JOB_ID}
-mkdir -p $SCRDIR
+if ! mkdir -p $SCRDIR 2>/dev/null; then
+	echo "WARNING: /scr full on $(hostname), falling back to home scratch" >&2
+	SCRDIR=$HOME/scratch/${SLURM_JOB_ID}
+	mkdir -p $SCRDIR
+fi
 cd $SCRDIR
 
 # Stage project into scratch. Exclude runs/ so past output isn't recopied on

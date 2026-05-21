@@ -5,6 +5,9 @@
 # trajectory
 *.dcd
 
+# slurm
+slurm/
+
 # misc
 toppar/
 NOTES.md
