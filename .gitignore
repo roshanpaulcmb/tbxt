@@ -8,6 +8,9 @@
 # slurm
 slurm/
 
+# runs
+runs/
+
 # misc
 toppar/
 NOTES.md
