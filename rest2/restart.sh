@@ -2,9 +2,9 @@
 #SBATCH --job-name=namd3TbxtRest2
 #SBATCH --output=slurm/%x_%j.out
 #SBATCH --error=slurm/%x_%j.err
-#SBATCH --nodes=1                # 4 replicas
-#SBATCH --gres=gpu:4             # 1 GPU per replica
-#SBATCH --ntasks-per-node=4      # 4 processes per node
+#SBATCH --nodes=1                # 8 replicas
+#SBATCH --gres=gpu:8             # 1 GPU per replica
+#SBATCH --ntasks-per-node=8      # 8 processes per node
 #SBATCH --cpus-per-task=4        # 4 threads per process
 #SBATCH --partition=dept_gpu,koes_gpu
 ##SBATCH --constraint="2080Ti|L40|A4500|A100"
@@ -18,10 +18,10 @@
 # Submit from the tbxt project root:  sbatch rest2/restart.sh
 # -----------------------------
 # Env knobs:
-#   RUN_NAME  -- must match the initial run. Default: tbxtAf3g177d_run1.
+#   RUN_NAME  -- must match the initial run. Default: tbxtAf3g177d_run3.
 #   NUM_RUNS  -- total run target. Default: 100000 (200 ns).
 #                Override at submission: NUM_RUNS=500000 sbatch rest2/restart.sh
-RUN_NAME="${RUN_NAME:-tbxtAf3g177d_run1}"
+RUN_NAME="${RUN_NAME:-tbxtAf3g177d_run3}"
 NUM_RUNS="${NUM_RUNS:-100000}"
 LAUNCH_CONF="restart.conf"
 export RUN_NAME NUM_RUNS
@@ -44,33 +44,23 @@ export NAMD_HOME
 # -----------------------------
 # Working directories
 # -----------------------------
-SCRDIR=/scr/${SLURM_JOB_ID}
-if ! mkdir -p $SCRDIR 2>/dev/null; then
-    echo "WARNING: /scr full on $(hostname), falling back to home scratch" >&2
-    SCRDIR=$HOME/scratch/${SLURM_JOB_ID}
-    mkdir -p $SCRDIR
-fi
-cd $SCRDIR
-
-rsync -a --exclude='runs/' $SLURM_SUBMIT_DIR/ ./
-
+# Run in place on shared storage: every checkpoint the driver writes -- the
+# per-replica .coor/.vel/.xsc/.tcl and the global restart .tcl -- lands directly
+# under runs/$RUN_NAME as it is written. No node-local /scr staging and no
+# copy-back, so a walltime SIGKILL (or any kill) cannot truncate the restart
+# files on the way home.
 DEST=$SLURM_SUBMIT_DIR/runs
-mkdir -p $DEST
-RUNDIR=$SCRDIR/runs/$RUN_NAME
+RUNDIR=$DEST/$RUN_NAME
 
-if [ ! -d "$DEST/$RUN_NAME" ]; then
-    echo "ERROR: cannot restart -- $DEST/$RUN_NAME not found" >&2
+if [ ! -d "$RUNDIR" ]; then
+    echo "ERROR: cannot restart -- $RUNDIR not found" >&2
     exit 1
 fi
-mkdir -p $SCRDIR/runs
-cp -r "$DEST/$RUN_NAME" "$SCRDIR/runs/"
 LOG_TAG="restart-$(date +%Y%m%d_%H%M%S)"
 
-trap "cp -r $RUNDIR $DEST/ 2>/dev/null" EXIT
-
-cd $SCRDIR/rest2
+cd $SLURM_SUBMIT_DIR/rest2
 
 PPN=$SLURM_CPUS_PER_TASK
 $NAMD_HOME/charmrun $NAMD_HOME/namd3 ++local +p $PPN \
-    +replicas 4 +devicesperreplica 1 $LAUNCH_CONF \
+    +replicas 8 +devicesperreplica 1 $LAUNCH_CONF \
     +stdout $RUNDIR/%d/$LOG_TAG.log

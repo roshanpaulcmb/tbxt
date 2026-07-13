@@ -2,9 +2,9 @@
 #SBATCH --job-name=namd3TbxtRest2
 #SBATCH --output=slurm/%x_%j.out
 #SBATCH --error=slurm/%x_%j.err
-#SBATCH --nodes=1                # 4 replicas
-#SBATCH --gres=gpu:4             # 1 GPU per replica
-#SBATCH --ntasks-per-node=4      # 4 process per node
+#SBATCH --nodes=1                # 8 replicas
+#SBATCH --gres=gpu:8             # 1 GPU per replica
+#SBATCH --ntasks-per-node=8      # 8 process per node
 #SBATCH --cpus-per-task=4        # 4 threads mapping to 4 cores per node
 #SBATCH --partition=dept_gpu,koes_gpu
 ##SBATCH --constraint="2080Ti|L40|A4500|A100"
@@ -26,7 +26,7 @@
 #                   equinpt.coor + equinpt.xsc from. Default: tbxtAf3g177d.
 #   NUM_RUNS     -- (restart only) override the new num_runs target. If unset,
 #                   restart.conf extends by the init's num_runs each pass.
-RUN_NAME="${RUN_NAME:-tbxtAf3g177d_run1}"
+RUN_NAME="${RUN_NAME:-tbxtAf3g177d_run3}"
 LAUNCH_CONF="${LAUNCH_CONF:-job0.conf}"
 EQ_PROTEIN="${EQ_PROTEIN:-tbxtAf3g177d}"
 export RUN_NAME
@@ -49,59 +49,45 @@ export NAMD_HOME   # so job0.conf / restart.conf can source via $env(NAMD_HOME)
 # -----------------------------
 # Working directories
 # -----------------------------
-SCRDIR=/scr/${SLURM_JOB_ID}
-if ! mkdir -p $SCRDIR 2>/dev/null; then
-	echo "WARNING: /scr full on $(hostname), falling back to home scratch" >&2
-	SCRDIR=$HOME/scratch/${SLURM_JOB_ID}
-	mkdir -p $SCRDIR
-fi
-cd $SCRDIR
-
-# Stage project into scratch. Exclude runs/ so past output isn't recopied on
-# every submission (the restart branch below pulls just the active run back in).
-rsync -a --exclude='runs/' $SLURM_SUBMIT_DIR/ ./
-
-# Persistent destination: results land inside the project repo on the cluster.
+# Run in place on shared storage: every file the driver writes -- per-replica
+# checkpoints, the global restart .tcl, DCDs, histories -- lands directly under
+# runs/$RUN_NAME as it is written. No node-local /scr staging and no copy-back,
+# so a walltime SIGKILL (or any kill) cannot truncate results on the way home.
 DEST=$SLURM_SUBMIT_DIR/runs
+RUNDIR=$DEST/$RUN_NAME
 mkdir -p $DEST
-RUNDIR=$SCRDIR/runs/$RUN_NAME
 
 if [ "$LAUNCH_CONF" = "job0.conf" ]; then
     # Stage equinpt.coor + equinpt.xsc from the protein's equilibration dir
     # into rest2/ -- the REST2 driver reads them by hardcoded name from CWD.
-    EQ_SRC=$SCRDIR/equilibrate/$EQ_PROTEIN
+    EQ_SRC=$SLURM_SUBMIT_DIR/equilibrate/$EQ_PROTEIN
     if [ ! -f "$EQ_SRC/equinpt.coor" ] || [ ! -f "$EQ_SRC/equinpt.xsc" ]; then
         echo "ERROR: missing equinpt.{coor,xsc} in $EQ_SRC" >&2
         exit 1
     fi
-    cp "$EQ_SRC/equinpt.coor" "$EQ_SRC/equinpt.xsc" "$SCRDIR/rest2/"
+    cp "$EQ_SRC/equinpt.coor" "$EQ_SRC/equinpt.xsc" "$SLURM_SUBMIT_DIR/rest2/"
 
     # Pre-create empty per-replica output subdirs.
     # Keep this seq in sync with num_replicas in initTbxtAf3g177d.conf.
-    for i in $(seq 0 3); do
+    for i in $(seq 0 7); do
         mkdir -p $RUNDIR/$i
     done
     LOG_TAG="job0"
 else
-    # Restart: pull the prior run tree from persistent storage into scratch
-    # so the driver can find the latest checkpoint .tcl + .coor/.vel/.xsc.
-    if [ ! -d "$DEST/$RUN_NAME" ]; then
-        echo "ERROR: cannot restart -- $DEST/$RUN_NAME not found" >&2
+    # Restart: the prior run tree is already on shared storage; the driver
+    # finds the latest checkpoint .tcl + .coor/.vel/.xsc directly under it.
+    if [ ! -d "$RUNDIR" ]; then
+        echo "ERROR: cannot restart -- $RUNDIR not found" >&2
         exit 1
     fi
-    mkdir -p $SCRDIR/runs
-    cp -r "$DEST/$RUN_NAME" "$SCRDIR/runs/"
     LOG_TAG="restart-$(date +%Y%m%d_%H%M%S)"
 fi
 
-# Clean exit: merge this submission's run tree back to persistent storage.
-trap "cp -r $RUNDIR $DEST/ 2>/dev/null" EXIT
-
 # Run NAMD from inside rest2/ so ../structures, ../toppar, ../runs in the
 # config files resolve as siblings.
-cd $SCRDIR/rest2
+cd $SLURM_SUBMIT_DIR/rest2
 
 PPN=$SLURM_CPUS_PER_TASK
 $NAMD_HOME/charmrun $NAMD_HOME/namd3 ++local +p $PPN \
-    +replicas 4 +devicesperreplica 1 $LAUNCH_CONF \
+    +replicas 8 +devicesperreplica 1 $LAUNCH_CONF \
     +stdout $RUNDIR/%d/$LOG_TAG.log

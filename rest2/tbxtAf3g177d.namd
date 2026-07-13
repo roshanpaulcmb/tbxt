@@ -104,7 +104,7 @@
     # Solute tempering
     soluteScaling on
     soluteScalingCol O
-    soluteScalingFile ../structures/tbxtAf3g177dRest2Mask.pdb
+    soluteScalingFile ../structures/tbxtAf3g177dRest2Mask_core.pdb
     soluteScalingAll off
     
     # Not set for Rest2
