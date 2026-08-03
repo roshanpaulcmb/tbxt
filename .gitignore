@@ -1,3 +1,7 @@
+# rest2
+rest2/charmrun.*
+rest2/equinpt.*
+
 # artifacts
 .DS_Store/
 .ipynb_checkpoints/

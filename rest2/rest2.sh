@@ -7,7 +7,9 @@
 #SBATCH --ntasks-per-node=8      # 8 process per node
 #SBATCH --cpus-per-task=4        # 4 threads mapping to 4 cores per node
 #SBATCH --partition=dept_gpu,koes_gpu
-##SBATCH --constraint="2080Ti|L40|A4500|A100"
+#SBATCH --constraint="L40|2080Ti|A4500|TitanX"   # every 8-GPU node type; all run NAMD 3 (CUDA 11.8 -> sm_50..sm_90)
+#SBATCH --exclude=g021           # g021 GPU4 (pci A5:00.0): 3026 uncorrected SRAM parity ECC errors,
+                                 # intermittently refuses CUDA contexts. Drop once admins reset it.
 #SBATCH --mail-user=rop174@pitt.edu
 #SBATCH --mail-type=ALL
 #SBATCH --time=12:00:00          # adjust based on estimated runtime
@@ -26,6 +28,7 @@
 #                   equinpt.coor + equinpt.xsc from. Default: tbxtAf3g177d.
 #   NUM_RUNS     -- (restart only) override the new num_runs target. If unset,
 #                   restart.conf extends by the init's num_runs each pass.
+NUM_REPLICAS=8   # keep in sync with num_replicas in initTbxtAf3g177d.conf
 RUN_NAME="${RUN_NAME:-tbxtAf3g177d_run3}"
 LAUNCH_CONF="${LAUNCH_CONF:-job0.conf}"
 EQ_PROTEIN="${EQ_PROTEIN:-tbxtAf3g177d}"
@@ -68,8 +71,7 @@ if [ "$LAUNCH_CONF" = "job0.conf" ]; then
     cp "$EQ_SRC/equinpt.coor" "$EQ_SRC/equinpt.xsc" "$SLURM_SUBMIT_DIR/rest2/"
 
     # Pre-create empty per-replica output subdirs.
-    # Keep this seq in sync with num_replicas in initTbxtAf3g177d.conf.
-    for i in $(seq 0 7); do
+    for i in $(seq 0 $((NUM_REPLICAS - 1))); do
         mkdir -p $RUNDIR/$i
     done
     LOG_TAG="job0"
@@ -87,7 +89,13 @@ fi
 # config files resolve as siblings.
 cd $SLURM_SUBMIT_DIR/rest2
 
-PPN=$SLURM_CPUS_PER_TASK
+# +p is the TOTAL PE (Charm++ worker thread) count across all replicas, not the
+# count per replica -- it must be divisible by +replicas or Charm aborts at
+# startup ("Socket closed before recv"). One PE per replica: with
+# CUDASOAintegrate the step loop is GPU-resident, and benchmarking 1/2/4 PEs per
+# replica on this system showed 13.79/13.88/13.73 ns/day -- flat, so extra CPU
+# worker threads buy nothing and only add comm-thread overhead.
+PPN=$NUM_REPLICAS
 $NAMD_HOME/charmrun $NAMD_HOME/namd3 ++local +p $PPN \
-    +replicas 8 +devicesperreplica 1 $LAUNCH_CONF \
+    +replicas $NUM_REPLICAS +devicesperreplica 1 $LAUNCH_CONF \
     +stdout $RUNDIR/%d/$LOG_TAG.log
